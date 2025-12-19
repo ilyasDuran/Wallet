@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Cüzdan Kayıt Formu</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="number"], select, input[type="date"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .checkbox-item { display: flex; align-items: center; font-weight: normal; font-size: 14px; }
+        .checkbox-item input { margin-right: 8px; }
+        button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        button:hover { background-color: #218838; }
+        /* Gizleme sınıfı */
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Cüzdan - Yeni Kayıt</h2>
+    <form id="walletForm" action="https://script.google.com/macros/s/AKfycbxhcrMU3FzR7UAxPChv-Jo0YLoZCRru5xOSKd4XzD71TrYYtDv_zksORF6Y8ETcvD_YRQ/exec" method="POST">
+        
+        <div class="form-group">
+            <label>Mevzû</label>
+            <input type="text" name="harcama" placeholder="Örn: Market" required>
+        </div>
+
+        <div class="form-group">
+            <label>Tarih</label>
+            <input type="date" id="tarihInput" required>
+            <input type="hidden" name="tarih" id="tarihFormatted">
+        </div>
+
+        <div class="form-group">
+            <label>Meblâ (TL)</label>
+            <input type="number" name="fiyat" step="10.00" placeholder="0,00 TL" required>
+        </div>
+
+        <div class="form-group">
+            <label>Kategori</label>
+            <select id="category" name="tip" required>
+                <option value="" disabled selected hidden>Seçiniz...</option>
+                <option value="Gelir">Gelir</option>
+                <option value="Gider">Gider</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Yöntem (Ana)</label>
+            <select id="yontem" name="yontem" required>
+                <option value="" disabled selected hidden>Önce kategori seçiniz...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label id="yontem2Label">Yöntem Detay</label>
+            <div id="yontem2Container">
+                <input type="text" name="yontem2" id="yontem2Field" placeholder="Alt kategori">
+            </div>
+        </div>
+
+        <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" name="ilyasIcinMi"> İlyas için mi?</label>
+            <label class="checkbox-item"><input type="checkbox" name="sermineYaz"> Şermin'e yaz..</label>
+            <label class="checkbox-item"><input type="checkbox" name="sonrakine"> Sonrakine</label>
+            <label class="checkbox-item"><input type="checkbox" name="puanMi"> Puan mı?</label>
+        </div>
+
+        <button type="submit" id="submitBtn">Kaydet</button>
+    </form>
+</div>
+
+<script>
+    // 1. VERİ YAPISI
+    // Kategori -> Yöntemler
+    const mainData = {
+        Gelir: ["Maaş", "Temel", "Teşvik", "Nöbet", "Diğer Gelir"],
+        Gider: ["Nakit", "Kredi Kartı", "Diğer Gider"]
+    };
+
+    // Yöntem -> Alt Detaylar (Value ve Text farklı)
+    const subData = {
+        "Kredi Kartı": [
+            { text: "Ziraat-Troy-***3157-Asil", value: "**** **** **** 3157" },
+            { text: "Ziraat-Troy-***0080-Sanal", value: "**** **** **** 0080" },
+            { text: "Halk-Troy-***0647-Asil", value: "**** **** **** 0647" },
+            { text: "Halk-Troy-***7469 -Sanal", value: "**** **** **** 7469" },
+            { text: "Kuveyt-Troy-***0064-Asil", value: "**** **** **** 0064" },
+            { text: "Kuveyt-Troy-***6812-Sanal", value: "**** **** **** 6812" },
+            { text: "Kuveyt-Master-***1277-Asil", value: "**** **** **** 1277" },
+            { text: "Kuveyt-Master-***9219-Sanal", value: "**** **** **** 9219" },
+            { text: "QNB-Master-***3687-Asil", value: "**** **** **** 3687" },
+            { text: "QNB-Master-***0240-Sanal", value: "**** **** **** 0240" },
+            { text: "Hadi-Troy-***8188-Asil", value: "**** **** **** 8188" },
+            { text: "Hadi-Master-***8790-Sanal", value: "**** **** **** 8790" },
+            { text: "Şermin-Ziraat-Troy-***0001-Asil", value: "**** **** **** 0001" },
+            { text: "Şermin-Halk-Troy-***0002-Asil", value: "**** **** **** 0002" }
+        ],
+        "Maaş": [
+            { text: "Ana Maaş", value: "IBAN_1" },
+            { text: "Ek Ders/Prim", value: "IBAN_2" }
+        ]
+        // Eğer burada bir yöntem tanımlanmazsa otomatik olarak metin kutusu (input) görünecek.
+    };
+
+    const categorySelect = document.getElementById('category');
+    const yontemSelect = document.getElementById('yontem');
+    const yontem2Container = document.getElementById('yontem2Container');
+
+    // 2. Kategori Değişince Yöntem Listesini Güncelle
+    categorySelect.addEventListener('change', function() {
+        const selected = this.value;
+        yontemSelect.innerHTML = '<option value="" disabled selected hidden>--Yöntem Seçiniz--</option>';
+        
+        mainData[selected].forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item;
+            opt.textContent = item;
+            yontemSelect.appendChild(opt);
+        });
+        updateYontem2(); // Kategori değişince alt alanı da sıfırla
+    });
+
+    // 3. Yöntem Değişince Yöntem 2 Alanını Güncelle (Dropdown mı Input mu?)
+    yontemSelect.addEventListener('change', updateYontem2);
+
+    function updateYontem2() {
+        const selectedYontem = yontemSelect.value;
+        const subOptions = subData[selectedYontem];
+
+        if (subOptions) {
+            // Eğer alt veri varsa: SELECT oluştur
+            let html = `<select name="yontem2" id="yontem2Field" required>`;
+            html += `<option value="" disabled selected hidden>Kart/Hesap Seçin...</option>`;
+            subOptions.forEach(obj => {
+                html += `<option value="${obj.value}">${obj.text}</option>`;
+            });
+            html += `</select>`;
+            yontem2Container.innerHTML = html;
+        } else {
+            // Eğer alt veri yoksa: INPUT (Metin kutusu) oluştur
+            yontem2Container.innerHTML = `<input type="text" name="yontem2" id="yontem2Field" placeholder="Manuel detay giriniz...">`;
+        }
+    }
+
+    // 4. Form Gönderimi (Fetch + SweetAlert)
+    const walletForm = document.getElementById('walletForm');
+    walletForm.onsubmit = function(e) {
+        e.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+
+        // Tarih Formatlama
+        var dateVal = document.getElementById('tarihInput').value;
+        if(dateVal) {
+            var parts = dateVal.split('-');
+            document.getElementById('tarihFormatted').value = parts[2] + '.' + parts[1] + '.' + parts[0];
+        }
+
+        const formData = new FormData(walletForm);
+
+        fetch(walletForm.action, {
+            method: 'POST',
+            body: formData,
+            mode: 'no-cors'
+        })
+        .then(() => {
+            Swal.fire({
+                title: 'Kayıt Başarılı!',
+                text: '3 saniye içinde yenileniyor...',
+                icon: 'success',
+                timer: 3000,
+                timerProgressBar: true
+            }).then(() => {
+                window.location.reload();
+            });
+        })
+        .catch(() => {
+            Swal.fire('Hata!', 'Gönderilemedi.', 'error');
+            submitBtn.disabled = false;
+        });
+    };
+</script>
+</body>
+</html>
