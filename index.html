@@ -52,7 +52,7 @@
             <select id="category" name="tip" required>
                 <option value="" disabled selected hidden>Seçiniz...</option>
                 <option value="Gelir">Gelir</option>
-                <option value="Gider">Gider</option>
+                <option value="Gider" selected>Gider</option>
             </select>
         </div>
 
@@ -191,9 +191,16 @@
             submitBtn.disabled = false;
         });
     };
+
+    // Sayfa yüklendiğinde çalışacak kod
+    window.onload = function() {
+        var today = new Date().toISOString().split('T')[0];
+        document.getElementById("tarihInput").value = today;
+    };
 </script>
 </body>
 
 </html>
+
 
 
