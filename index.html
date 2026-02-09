@@ -21,8 +21,7 @@
         .checkbox-item input { margin-right: 8px; }
         button { width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 20px; }
         button:hover { background-color: #218838; }
-        /* Gizleme sınıfı */
-        .hidden { display: none; }
+        .radio-group { display: flex; gap: 15px; background: #eee; padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -48,13 +47,11 @@
         </div>
 
         <div class="form-group">
-            <label style="display: block; margin-bottom: 5px;">Kategori</label>
-            
-            <div class="radio-group" style="display: flex; gap: 15px;">
+            <label>Kategori</label>
+            <div class="radio-group">
                 <label style="font-weight: normal; cursor: pointer;">
                     <input type="radio" name="tip" value="Gelir" required> Gelir
                 </label>
-                
                 <label style="font-weight: normal; cursor: pointer;">
                     <input type="radio" name="tip" value="Gider" checked required> Gider
                 </label>
@@ -64,7 +61,7 @@
         <div class="form-group">
             <label>Yöntem (Ana)</label>
             <select id="yontem" name="yontem" required>
-                <option value="" disabled selected hidden>Önce kategori seçiniz...</option>
+                <option value="" disabled selected hidden>Yükleniyor...</option>
             </select>
         </div>
 
@@ -87,14 +84,11 @@
 </div>
 
 <script>
-    // 1. VERİ YAPISI
-    // Kategori -> Yöntemler
     const mainData = {
         Gelir: ["Maaş", "Temel", "Teşvik", "Nöbet", "Diğer Gelir"],
         Gider: ["Nakit", "Kredi Kartı", "Diğer Gider"]
     };
 
-    // Yöntem -> Alt Detaylar (Value ve Text farklı)
     const subData = {
         "Kredi Kartı": [
             { text: "Ziraat-Troy-***3157-Asil", value: "**** **** **** 3157" },
@@ -116,28 +110,31 @@
             { text: "Ana Maaş", value: "IBAN_1" },
             { text: "Ek Ders/Prim", value: "IBAN_2" }
         ]
-        // Eğer burada bir yöntem tanımlanmazsa otomatik olarak metin kutusu (input) görünecek.
     };
 
-    const categorySelect = document.getElementById('category');
     const yontemSelect = document.getElementById('yontem');
     const yontem2Container = document.getElementById('yontem2Container');
+    const tipRadios = document.getElementsByName('tip');
 
-    // 2. Kategori Değişince Yöntem Listesini Güncelle
-    categorySelect.addEventListener('change', function() {
-        const selected = this.value;
+    // Kategori değişimini yakalayan fonksiyon
+    function updateYontemOptions(selectedTip) {
         yontemSelect.innerHTML = '<option value="" disabled selected hidden>--Yöntem Seçiniz--</option>';
-        
-        mainData[selected].forEach(item => {
+        mainData[selectedTip].forEach(item => {
             const opt = document.createElement('option');
             opt.value = item;
             opt.textContent = item;
             yontemSelect.appendChild(opt);
         });
-        updateYontem2(); // Kategori değişince alt alanı da sıfırla
+        updateYontem2(); 
+    }
+
+    // Radio buttonlara tıklama dinleyicisi ekle
+    tipRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            updateYontemOptions(e.target.value);
+        });
     });
 
-    // 3. Yöntem Değişince Yöntem 2 Alanını Güncelle (Dropdown mı Input mu?)
     yontemSelect.addEventListener('change', updateYontem2);
 
     function updateYontem2() {
@@ -145,7 +142,6 @@
         const subOptions = subData[selectedYontem];
 
         if (subOptions) {
-            // Eğer alt veri varsa: SELECT oluştur
             let html = `<select name="yontem2" id="yontem2Field" required>`;
             html += `<option value="" disabled selected hidden>Kart/Hesap Seçin...</option>`;
             subOptions.forEach(obj => {
@@ -154,19 +150,16 @@
             html += `</select>`;
             yontem2Container.innerHTML = html;
         } else {
-            // Eğer alt veri yoksa: INPUT (Metin kutusu) oluştur
             yontem2Container.innerHTML = `<input type="text" name="yontem2" id="yontem2Field" placeholder="Manuel detay giriniz...">`;
         }
     }
 
-    // 4. Form Gönderimi (Fetch + SweetAlert)
     const walletForm = document.getElementById('walletForm');
     walletForm.onsubmit = function(e) {
         e.preventDefault();
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = true;
 
-        // Tarih Formatlama
         var dateVal = document.getElementById('tarihInput').value;
         if(dateVal) {
             var parts = dateVal.split('-');
@@ -197,16 +190,15 @@
         });
     };
 
-    // Sayfa yüklendiğinde çalışacak kod
     window.onload = function() {
+        // Tarihi ayarla
         var today = new Date().toISOString().split('T')[0];
         document.getElementById("tarihInput").value = today;
+
+        // Sayfa açıldığında seçili olan radio (Gider) verilerini yükle
+        const defaultTip = document.querySelector('input[name="tip"]:checked').value;
+        updateYontemOptions(defaultTip);
     };
 </script>
 </body>
-
 </html>
-
-
-
-
